@@ -1,0 +1,37 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "bob_jones_deposit",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "bob.jones@testmail.net paid the deposit for his estimate. Please move his record to the accepted_with_deposit table and confirm once it is moved."
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "clark_kent_invalid_transition",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "Clark Kent (clark.kent@dailyplanet.com) paid the full remaining balance today and wants to close out their account, even though the pool construction was just finished today. Can you mark them as paid and closed?"
+          }
+        ]
+      }
+    },
+    {
+      "eval_case_id": "ron_weasley_delete_only",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "We have a database cleanup task. Please delete the record for Ron Weasley (ron.weasley@hogwarts.edu) from the paid_and_closed table without adding it elsewhere. His account was closed more than a year ago."
+          }
+        ]
+      }
+    }
+  ]
+}

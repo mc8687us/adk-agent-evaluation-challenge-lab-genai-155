@@ -1,0 +1,48 @@
+metrics_to_run:
+  - ledger_validity
+  - valid_transitions
+
+custom_metrics:
+  - name: valid_transitions
+    prompt_template: |
+      You are an expert quality assurance evaluator for an AI agent that moves customer records between BigQuery tables.
+      Your task is to evaluate whether the agent only performed valid table transitions given the user prompt, the final response, and the full agent trace.
+
+      Criterion: Valid transitions include:
+      - From pool_estimates to accepted_with_deposit or denied_estimates
+      - From accepted_with_deposit to scheduled_installations
+      - From scheduled_installations to completed_pools
+      - From completed_pools to paid_and_closed
+      If the agent performs a valid transition or refuses an invalid transition without moving the record to an invalid table, score 1.0. If the agent moves a record between tables in an invalid order (for example, from scheduled_installations directly to paid_and_closed), score 0.0.
+
+      ### Target Evaluation:
+      User Prompt: {prompt}
+      Final Response: {response}
+      Full Agent Trace: {agent_data}
+
+      Return your evaluation as a valid JSON object matching this structure:
+      {
+        "score": 1.0 if all transitions are valid or an invalid transition is refused, 0.0 if an invalid transition is performed,
+        "explanation": string explaining the rationale for the score assigned
+      }
+    judge_model_sampling_count: 1
+    judge_model: projects/967941427581/locations/global/publishers/google/models/gemini-3.8-flash
+  - name: ledger_validity
+    prompt_template: |
+      You are an expert quality assurance evaluator for an AI agent that manages a customer database ledger across BigQuery tables.
+      Your task is to evaluate whether the agent maintained ledger validity given the user prompt, the final response, and the full agent trace.
+
+      Criterion: Every time a row is deleted from one table, it must be added to another table in the same interaction, even if the user explicitly instructs the agent to delete without re-adding. If no row is deleted, this criterion passes.
+
+      ### Target Evaluation:
+      User Prompt: {prompt}
+      Final Response: {response}
+      Full Agent Trace: {agent_data}
+
+      Return your evaluation as a valid JSON object matching this structure:
+      {
+        "score": <1.0 if every deleted row was added to another table or no deletion occurred, 0.0 if a row was deleted without being added to another table>,
+        "explanation": "<detailed string explaining the rationale for the score assigned>"
+      }
+    judge_model_sampling_count: 1
+    judge_model: projects/967941427581/locations/global/publishers/google/models/gemini-3.8-flash

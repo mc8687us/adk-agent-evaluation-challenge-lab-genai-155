@@ -1,0 +1,15 @@
+{
+  "eval_cases": [
+    {
+      "eval_case_id": "list_tables",
+      "prompt": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "What tables are available in the pool_data dataset?"
+          }
+        ]
+      }
+    }
+  ]
+}

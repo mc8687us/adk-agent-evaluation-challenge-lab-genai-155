@@ -1,0 +1,92 @@
+Task 2. Build and run the evaluation pipeline with Agents CLI Eval
+  3.	Notice that tests/eval/eval_config.yaml contains two top-level sections:
+  4.	Add a second custom LLM-as-a-Judge metric named valid_transitions to tests/eval/eval_config.yaml to test for Invalid Transitions (checking whether the agent only moves records between tables in a valid order):
+
+Use "eval_config.yaml" file in this reposistory to meet goal Task 2.
+  https://github.com/mc8687us/gemini-cert-guide/blob/main/eval_config.yaml
+
+  •	Add - valid_transitions under metrics_to_run.
+  • Append the valid_transitions metric definition under custom_metrics:
+
+
+Task 3. Improve the agent to fix evaluation issues
+  2. Complete the function named perform_consistent_transaction so that it moves a customer record atomically in a single tool call by combining the three existing SQL helper functions (read_table, write_to_table, and delete_from_table):
+  3. Complete the function named check_transaction to check if a transition between two tables (from_table -> to_table) is valid and return True if so, or False for any other pair of tables (being careful not to raise a KeyError when from_table is a terminal table like paid_and_closed or denied_estimates that has no outgoing transitions). The valid transitions are listed here:
+  8. Modify root_agent so that its tools list only includes the following verified functions (removing bigquery_toolset):
+  9. Replace the agent's instruction in root_agent with the following prompt, which removes the raw SQL project and pool_data dataset instructions (now handled internally by your Python tools) and instructs the agent how to use the new tools and pass bare table names:
+    
+  Use "agent.py"file in this reposistory for achieve above Task 3.
+    https://github.com/mc8687us/gemini-cert-guide/blob/main/agent.py
+
+#########################################################################
+
+----------- Below are function code for Task 3. either use below code or reposistory --------------------------------
+3.2 function named perform_consistent_transaction
+def perform_consistent_transaction(from_table: str, to_table: str, customer_email: str):
+    """
+    Search for a record from from_table.
+    If that record exists, write it to the to_table and delete it from the original table.
+    
+    Args:
+        from_table: The bare table name to read the record from (without project ID or 'pool_data.' dataset prefix, e.g. 'pool_estimates').
+        to_table: The bare table name to write the record to (without project ID or 'pool_data.' dataset prefix, e.g. 'accepted_with_deposit').
+        customer_email: The email of the customer to perform the transaction for
+    
+    Returns:
+        Whether it could perform the transaction
+    """
+    # 1. Look up the customer's record
+    row = read_table(from_table, customer_email)
+    
+    # 2. Only if a matching row is found, proceed with the transaction
+    if row is not None:
+        write_to_table(to_table, row)
+        delete_from_table(from_table, customer_email)
+        return True
+
+    # 3. Return False if no matching row is found
+    return False
+
+
+3.3 function named check_transaction
+
+def check_transaction(from_table: str, to_table: str) -> bool:
+    """
+    Checks if a transition between two tables is valid.
+    Args:
+        from_table: The bare source table name (without project ID or 'pool_data.' dataset prefix, e.g. 'pool_estimates').
+        to_table: The bare destination table name (without project ID or 'pool_data.' dataset prefix, e.g. 'accepted_with_deposit').
+    Returns:
+        bool: True if the transition is valid, False otherwise.
+    """
+    # Map each source table to its valid destination tables
+    valid_transitions = {
+        "pool_estimates": {"accepted_with_deposit", "denied_estimates"},
+        "accepted_with_deposit": {"scheduled_installations"},
+        "scheduled_installations": {"completed_pools"},
+        "completed_pools": {"paid_and_closed"}
+    }
+    
+    # Safely retrieve allowed destinations to prevent KeyErrors for terminal states
+    allowed_destinations = valid_transitions.get(from_table)
+    
+    # Check if the destination table is in the set of allowed destinations
+    if allowed_destinations and to_table in allowed_destinations:
+        return True
+
+    return False
+
+3.4 Modify root_agent so that its tools list only includes the following verified functions (removing bigquery_toolset):
+              •	read_table
+              •	read_table_all
+              •	check_transaction
+              •	perform_consistent_transaction
+# Modify your root_agent instantiation by replacing tools=[bigquery_toolset] with:
+    tools=[
+        read_table,
+        read_table_all,
+        check_transaction,
+        perform_consistent_transaction,
+          ],
+
+#########################################################################
